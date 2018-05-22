@@ -4,6 +4,10 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import re
 import time
+import csv
+import urllib.request
+import os
+from urllib.parse import urlparse
 # create a new Firefox session
 #cap = DesiredCapabilities().FIREFOX
 #cap["marionette"] = False
@@ -29,28 +33,44 @@ class MyTest(object):
 		# iterate through each element and print the text that is
 		# name of the search
 		for listitem in lists[1:2]:	
+			storeUrl = ""
+			storeName = ""
+			storeAddress = ""
+			storeRating = ""
+			storeCuisines = []
 			searchObj  = re.search(r'<a class="result-title[^\"]+" href=\"([^\"]+)\" title=\"([^\"]+)\"', listitem.get_attribute('innerHTML'),re.M|re.I)
 			if  searchObj:
-				print ("Store Url : ", searchObj.group(1))
-				self.storeUrl.append(searchObj.group(1))
-				print ("Store Name : ", searchObj.group(2))
-				self.storeName.append(searchObj.group(2))			
+				storeUrl = searchObj.group(1)
+				storeName = searchObj.group(2)
+
+				print ("Store Url : ", storeUrl)
+				self.storeUrl.append(storeUrl)
+
+				print ("Store Name : ", storeName)
+				self.storeName.append(storeName)			
 			else:
 				print ("No match!!")
 
 			addressObj  = re.search(r'<div[^>]*class=\"[^\"]+search-result-address[^\"]+\"\s*title=\"([^\"]+)\"', listitem.get_attribute('innerHTML'),re.M|re.I)
 			if  addressObj:
-				print ("address : ", addressObj.group(1))			
+				storeAddress = addressObj.group(1)
+				print ("address : ", storeAddress)			
 			else:
 				print ("No match!!")
 
 			ratingObj  = re.search(r'<div[^>]*class=\"rating-popup[^\"]+\">([^>]+)<\/div>', listitem.get_attribute('innerHTML'),re.M|re.I)
 			if  ratingObj:
-				print ("ratingObj : ", ratingObj.group(1).strip())				
+				storeRating = ratingObj.group(1).strip()
+				print ("ratingObj : ", storeRating)				
 
 			CUISINES  = re.findall(r'<a\s*title=\"([^\"]+)\"', listitem.get_attribute('innerHTML'),re.M|re.I)
 			for CUISINE in CUISINES:
 				print ("CUISINE--"+CUISINE)	
+				storeCuisines.append(CUISINE)
+
+			with open('restaurant_data.csv', 'a') as csvfile:
+				spamwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+				spamwriter.writerow([storeName, storeUrl, storeAddress, storeRating, storeCuisines])
 
 
 	def getImageUrls(self):		
@@ -62,7 +82,13 @@ class MyTest(object):
 			menuImageUrls  = re.findall(r'\"url\":\"([^\"]+)\"', menuHTMLBody.get_attribute('innerHTML'),re.M|re.I)
 			
 			for menuImageUrl in menuImageUrls:
+				
+				menuImageUrl = menuImageUrl.replace("\\", "")
 				print ("menuImageUrl--"+menuImageUrl)
+				a = urlparse(menuImageUrl)
+				fileName = os.path.basename(a.path)
+				urllib.request.urlretrieve(menuImageUrl, fileName)
+				time.sleep(3) # wait for 3 secondscls
 
 	
 	def browserQuit(self):		
